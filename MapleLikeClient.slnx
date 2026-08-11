@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MapleLikeClient/MapleLikeClient.vcxproj" Id="da22af9a-fc48-42ed-adcd-4decb7fa73dd" />
+</Solution>

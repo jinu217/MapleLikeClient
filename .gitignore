@@ -44,6 +44,32 @@ build/
 Build/
 build-*/
 
+# Visual Studio local settings
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+Win32/
+
+# MSBuild intermediate files
+*.idb
+*.ipch
+*.iobj
+*.ipdb
+*.recipe
+*.tlog
+*.lastbuildstate
+
 # CMake generated files
 CMakeFiles/
 CMakeCache.txt

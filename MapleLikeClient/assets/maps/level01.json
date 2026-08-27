@@ -1,0 +1,29 @@
+{
+  "worldSize": [3200, 1200],
+  "playerSpawn": [120, 200],
+  "platforms": [
+    { "position": [0, 620], "size": [850, 100] },
+    { "position": [220, 500], "size": [220, 24] },
+    { "position": [560, 410], "size": [220, 24] },
+    { "position": [900, 520], "size": [180, 24] },
+    { "position": [1120, 620], "size": [620, 100] },
+    { "position": [1330, 470], "size": [240, 24] },
+    { "position": [1800, 700], "size": [700, 100] },
+    { "position": [1930, 550], "size": [220, 24] },
+    { "position": [2260, 410], "size": [220, 24] },
+    { "position": [2580, 620], "size": [620, 100] },
+    { "position": [2780, 480], "size": [220, 24] },
+    { "position": [3100, 320], "size": [32, 300] }
+  ],
+  "enemies": [
+    { "position": [700, 346] },
+    { "position": [1430, 406] },
+    { "position": [2030, 486] },
+    { "position": [2850, 416] }
+  ],
+  "checkpoints": [
+    { "position": [120, 548], "size": [48, 72] },
+    { "position": [1450, 548], "size": [48, 72] },
+    { "position": [2700, 548], "size": [48, 72] }
+  ]
+}

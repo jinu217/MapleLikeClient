@@ -24,6 +24,8 @@
     <ProjectGuid>{da22af9a-fc48-42ed-adcd-4decb7fa73dd}</ProjectGuid>
     <RootNamespace>MapleLikeClient</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <SfmlRoot Condition="'$(SFML_ROOT)' != ''">$(SFML_ROOT)</SfmlRoot>
+    <SfmlRoot Condition="'$(SfmlRoot)' == ''">C:\Libraries\SFML-3.1.0</SfmlRoot>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -71,8 +73,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(IncludePath);C:\Libraries\SFML-3.1.0\include</IncludePath>
-    <LibraryPath>$(LibraryPath);C:\Libraries\SFML-3.1.0\lib</LibraryPath>
+    <IncludePath>$(IncludePath);$(SfmlRoot)\include</IncludePath>
+    <LibraryPath>$(LibraryPath);$(SfmlRoot)\lib</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(IncludePath);$(SfmlRoot)\include</IncludePath>
+    <LibraryPath>$(LibraryPath);$(SfmlRoot)\lib</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -138,18 +144,60 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);sfml-graphics.lib;sfml-window.lib;sfml-system.lib</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CameraController.cpp" />
+    <ClCompile Include="Checkpoint.cpp" />
+    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Inventory.cpp" />
+    <ClCompile Include="ItemDrop.cpp" />
+    <ClCompile Include="LevelLoader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Platform.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CameraController.h" />
+    <ClInclude Include="Checkpoint.h" />
+    <ClInclude Include="Collision.h" />
+    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="Inventory.h" />
+    <ClInclude Include="ItemDrop.h" />
+    <ClInclude Include="ItemType.h" />
+    <ClInclude Include="LevelData.h" />
+    <ClInclude Include="LevelLoader.h" />
+    <ClInclude Include="Platform.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="World.h" />
+    <ClInclude Include="third_party\nlohmann\json.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="third_party\nlohmann\LICENSE.MIT" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="ValidateSfml" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'">
+    <Error Condition="!Exists('$(SfmlRoot)\include\SFML\Graphics.hpp')" Text="SFML was not found at '$(SfmlRoot)'. Set the SFML_ROOT environment variable to your SFML 3.1 installation." />
+  </Target>
+  <Target Name="CopySfmlRuntime" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <ItemGroup Condition="'$(Configuration)'=='Debug'">
+      <SfmlRuntime Include="$(SfmlRoot)\bin\sfml-graphics-d-3.dll;$(SfmlRoot)\bin\sfml-window-d-3.dll;$(SfmlRoot)\bin\sfml-system-d-3.dll" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)'=='Release'">
+      <SfmlRuntime Include="$(SfmlRoot)\bin\sfml-graphics-3.dll;$(SfmlRoot)\bin\sfml-window-3.dll;$(SfmlRoot)\bin\sfml-system-3.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SfmlRuntime)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

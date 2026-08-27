@@ -1,27 +1,19 @@
-#include <SFML/Graphics.hpp>
-#include <optional>
+#include "Game.h"
+
+#include <exception>
+#include <iostream>
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode({ 1280, 720 }), "MapleLike RPG");
-
-    while (window.isOpen())
+    try
     {
-        while (const std::optional event = window.pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-                window.close();
-        }
-
-        window.clear();
-
-        sf::CircleShape circle(50.f);
-        circle.setPosition({ 100.f, 100.f });
-
-        window.draw(circle);
-
-        window.display();
+        Game game;
+        game.run();
+        return 0;
     }
-
-    return 0;
+    catch (const std::exception& error)
+    {
+        std::cerr << "Failed to start game: " << error.what() << '\n';
+        return 1;
+    }
 }

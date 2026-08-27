@@ -30,6 +30,36 @@ namespace
         }
     }
 
+    PlatformType readPlatformType(const nlohmann::json& value)
+    {
+        const std::string type = value.get<std::string>();
+        if (type == "solid")
+        {
+            return PlatformType::Solid;
+        }
+        if (type == "oneWay")
+        {
+            return PlatformType::OneWay;
+        }
+
+        throw std::runtime_error("platform.type must be 'solid' or 'oneWay'");
+    }
+
+    ClimbableType readClimbableType(const nlohmann::json& value)
+    {
+        const std::string type = value.get<std::string>();
+        if (type == "ladder")
+        {
+            return ClimbableType::Ladder;
+        }
+        if (type == "rope")
+        {
+            return ClimbableType::Rope;
+        }
+
+        throw std::runtime_error("climbable.type must be 'ladder' or 'rope'");
+    }
+
     std::filesystem::path executableDirectory()
     {
         std::vector<wchar_t> buffer(512);
@@ -74,7 +104,8 @@ LevelData LevelLoader::load(const std::filesystem::path& path)
         {
             PlatformData platform{
                 readVector(item.at("position"), "platform.position"),
-                readVector(item.at("size"), "platform.size")
+                readVector(item.at("size"), "platform.size"),
+                readPlatformType(item.at("type"))
             };
             validatePositive(platform.size, "platform.size");
             level.platforms.push_back(platform);
@@ -93,6 +124,17 @@ LevelData LevelLoader::load(const std::filesystem::path& path)
             };
             validatePositive(checkpoint.size, "checkpoint.size");
             level.checkpoints.push_back(checkpoint);
+        }
+
+        for (const nlohmann::json& item : root.at("climbables"))
+        {
+            ClimbableData climbable{
+                readVector(item.at("position"), "climbable.position"),
+                readVector(item.at("size"), "climbable.size"),
+                readClimbableType(item.at("type"))
+            };
+            validatePositive(climbable.size, "climbable.size");
+            level.climbables.push_back(climbable);
         }
 
         if (level.platforms.empty())

@@ -26,7 +26,7 @@ private:
     [[nodiscard]] bool overlaps(const sf::FloatRect& attackBounds) const;
     [[nodiscard]] bool hasGroundAhead(std::span<const Platform> platforms) const;
     void resolveHorizontalCollisions(std::span<const Platform> platforms);
-    void resolveVerticalCollisions(std::span<const Platform> platforms);
+    void resolveVerticalCollisions(std::span<const Platform> platforms, float previousBottom);
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
     sf::RectangleShape body;

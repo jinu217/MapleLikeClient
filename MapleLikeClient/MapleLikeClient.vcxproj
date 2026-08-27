@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="Checkpoint.cpp" />
+    <ClCompile Include="Climbable.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Inventory.cpp" />
@@ -166,6 +167,7 @@
   <ItemGroup>
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="Checkpoint.h" />
+    <ClInclude Include="Climbable.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Game.h" />

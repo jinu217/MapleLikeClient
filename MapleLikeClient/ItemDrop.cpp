@@ -18,6 +18,7 @@ void ItemDrop::update(const float deltaTime, const std::span<const Platform> pla
     lifetime -= deltaTime;
     velocity.x *= std::max(0.f, 1.f - 2.5f * deltaTime);
     velocity.y = std::min(velocity.y + Gravity * deltaTime, MaxFallSpeed);
+    const float previousBottom = body.getPosition().y + body.getSize().y;
     body.move(velocity * deltaTime);
 
     if (velocity.y < 0.f)
@@ -28,6 +29,12 @@ void ItemDrop::update(const float deltaTime, const std::span<const Platform> pla
     for (const Platform& platform : platforms)
     {
         if (!overlaps(platform))
+        {
+            continue;
+        }
+
+        if (platform.getType() == PlatformType::OneWay
+            && previousBottom > platform.getPosition().y + 1.f)
         {
             continue;
         }

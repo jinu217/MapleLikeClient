@@ -12,7 +12,7 @@ World::World(const LevelData& level)
     platforms.reserve(level.platforms.size());
     for (const PlatformData& platform : level.platforms)
     {
-        platforms.emplace_back(platform.position, platform.size);
+        platforms.emplace_back(platform.position, platform.size, platform.type);
     }
 
     resetEnemies();
@@ -21,6 +21,12 @@ World::World(const LevelData& level)
     for (const CheckpointData& checkpoint : level.checkpoints)
     {
         checkpoints.emplace_back(checkpoint.position, checkpoint.size);
+    }
+
+    climbables.reserve(level.climbables.size());
+    for (const ClimbableData& climbable : level.climbables)
+    {
+        climbables.emplace_back(climbable.position, climbable.size, climbable.type);
     }
 }
 
@@ -32,6 +38,11 @@ sf::Vector2f World::getSize() const
 std::span<const Platform> World::getPlatforms() const
 {
     return platforms;
+}
+
+std::span<const Climbable> World::getClimbables() const
+{
+    return climbables;
 }
 
 void World::update(Player& player, Inventory& inventory, const float deltaTime)
@@ -126,6 +137,11 @@ void World::resetEnemies()
 
 void World::draw(sf::RenderTarget& target) const
 {
+    for (const Climbable& climbable : climbables)
+    {
+        target.draw(climbable);
+    }
+
     for (const Platform& platform : platforms)
     {
         target.draw(platform);

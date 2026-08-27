@@ -4,10 +4,14 @@
 
 #include <vector>
 
+#include "Platform.h"
+#include "Climbable.h"
+
 struct PlatformData
 {
     sf::Vector2f position;
     sf::Vector2f size;
+    PlatformType type;
 };
 
 struct EnemyData
@@ -21,6 +25,13 @@ struct CheckpointData
     sf::Vector2f size;
 };
 
+struct ClimbableData
+{
+    sf::Vector2f position;
+    sf::Vector2f size;
+    ClimbableType type;
+};
+
 struct LevelData
 {
     sf::Vector2f worldSize;
@@ -28,4 +39,5 @@ struct LevelData
     std::vector<PlatformData> platforms;
     std::vector<EnemyData> enemies;
     std::vector<CheckpointData> checkpoints;
+    std::vector<ClimbableData> climbables;
 };

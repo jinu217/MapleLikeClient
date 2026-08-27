@@ -32,9 +32,10 @@ void Enemy::update(const float deltaTime, const std::span<const Platform> platfo
     body.move({ velocity.x * deltaTime, 0.f });
     resolveHorizontalCollisions(platforms);
 
+    const float previousBottom = body.getPosition().y + body.getSize().y;
     grounded = false;
     body.move({ 0.f, velocity.y * deltaTime });
-    resolveVerticalCollisions(platforms);
+    resolveVerticalCollisions(platforms, previousBottom);
 }
 
 bool Enemy::tryTakeHit(
@@ -103,6 +104,9 @@ void Enemy::resolveHorizontalCollisions(const std::span<const Platform> platform
 {
     for (const Platform& platform : platforms)
     {
+        if (platform.getType() == PlatformType::OneWay)
+            continue;
+
         if (!overlaps(sf::FloatRect(platform.getPosition(), platform.getSize())))
             continue;
 
@@ -116,11 +120,17 @@ void Enemy::resolveHorizontalCollisions(const std::span<const Platform> platform
     }
 }
 
-void Enemy::resolveVerticalCollisions(const std::span<const Platform> platforms)
+void Enemy::resolveVerticalCollisions(
+    const std::span<const Platform> platforms,
+    const float previousBottom)
 {
     for (const Platform& platform : platforms)
     {
         if (!overlaps(sf::FloatRect(platform.getPosition(), platform.getSize())))
+            continue;
+
+        if (platform.getType() == PlatformType::OneWay
+            && (velocity.y < 0.f || previousBottom > platform.getPosition().y + 1.f))
             continue;
 
         if (velocity.y > 0.f)

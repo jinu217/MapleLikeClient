@@ -4,6 +4,7 @@
 
 #include "Platform.h"
 #include "Collision.h"
+#include "Climbable.h"
 
 Player::Player(const sf::Vector2f startPosition)
     : body({ 48.f, 72.f }), spawnPosition(startPosition)
@@ -17,14 +18,20 @@ Player::Player(const sf::Vector2f startPosition)
 void Player::update(
     const float deltaTime,
     const std::span<const Platform> platforms,
+    const std::span<const Climbable> climbables,
     const sf::Vector2f worldSize)
 {
     updateDamageTimers(deltaTime);
 
+    bool climbingThisFrame = false;
     if (hurtTimer <= 0.f)
     {
-        handleInput(deltaTime);
-        updateJump(deltaTime);
+        climbingThisFrame = updateClimbing(climbables);
+        if (!climbingThisFrame)
+        {
+            handleInput(deltaTime);
+            updateJump(deltaTime);
+        }
         updateAttack(deltaTime);
     }
     else
@@ -36,15 +43,33 @@ void Player::update(
         attackTimer = std::max(0.f, attackTimer - deltaTime);
         attackCooldownTimer = std::max(0.f, attackCooldownTimer - deltaTime);
     }
+
+    if (climbingThisFrame)
+    {
+        body.move(velocity * deltaTime);
+
+        const float top = activeClimbable->getPosition().y;
+        const float bottom = top + activeClimbable->getSize().y;
+        const float clampedBottom = std::clamp(
+            body.getPosition().y + body.getSize().y,
+            top,
+            bottom);
+        body.setPosition({ body.getPosition().x, clampedBottom - body.getSize().y });
+        constrainToWorld(worldSize.x);
+        return;
+    }
+
     grounded = false;
+    groundedOnOneWay = false;
     applyGravity(deltaTime);
 
     body.move({ velocity.x * deltaTime, 0.f });
     resolveHorizontalCollisions(platforms);
     constrainToWorld(worldSize.x);
 
+    const float previousBottom = body.getPosition().y + body.getSize().y;
     body.move({ 0.f, velocity.y * deltaTime });
-    resolveVerticalCollisions(platforms);
+    resolveVerticalCollisions(platforms, previousBottom);
 
     if (grounded && jumpBufferTimer > 0.f)
     {
@@ -62,6 +87,9 @@ void Player::respawn()
     body.setPosition(spawnPosition);
     velocity = {};
     grounded = false;
+    groundedOnOneWay = false;
+    climbing = false;
+    activeClimbable = nullptr;
     jumpWasPressed = false;
     attackWasPressed = false;
     jumpsUsed = 0;
@@ -71,6 +99,7 @@ void Player::respawn()
     attackCooldownTimer = 0.f;
     invulnerabilityTimer = 0.f;
     hurtTimer = 0.f;
+    dropThroughTimer = 0.f;
     health = MaxHealth;
 }
 
@@ -169,6 +198,9 @@ bool Player::takeDamage(const sf::Vector2f damageSource)
     velocity.x = playerCenterX < damageSource.x ? -HurtKnockbackSpeed : HurtKnockbackSpeed;
     velocity.y = -HurtKnockbackLift;
     grounded = false;
+    groundedOnOneWay = false;
+    climbing = false;
+    activeClimbable = nullptr;
     hurtTimer = HurtDuration;
     invulnerabilityTimer = InvulnerabilityDuration;
     jumpBufferTimer = 0.f;
@@ -214,10 +246,25 @@ void Player::handleInput(const float deltaTime)
     velocity.x += std::clamp(speedDifference, -speedChange, speedChange);
 
     const bool jumpIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space);
+    const bool downIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)
+        || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S);
 
     if (jumpIsPressed && !jumpWasPressed)
     {
-        jumpBufferTimer = JumpBufferDuration;
+        if (downIsPressed && grounded && groundedOnOneWay)
+        {
+            dropThroughTimer = DropThroughDuration;
+            velocity.y = DropThroughSpeed;
+            grounded = false;
+            groundedOnOneWay = false;
+            coyoteTimer = 0.f;
+            jumpBufferTimer = 0.f;
+            jumpsUsed = 1;
+        }
+        else
+        {
+            jumpBufferTimer = JumpBufferDuration;
+        }
     }
 
     if (!jumpIsPressed && jumpWasPressed && velocity.y < 0.f)
@@ -226,6 +273,104 @@ void Player::handleInput(const float deltaTime)
     }
 
     jumpWasPressed = jumpIsPressed;
+}
+
+bool Player::updateClimbing(const std::span<const Climbable> climbables)
+{
+    const bool jumpIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space);
+    const bool upIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)
+        || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W);
+    const bool downIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)
+        || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S);
+    const bool leftIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)
+        || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A);
+    const bool rightIsPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)
+        || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D);
+    const float verticalDirection = static_cast<float>(downIsPressed) - static_cast<float>(upIsPressed);
+
+    if (!climbing && verticalDirection != 0.f && !jumpIsPressed)
+    {
+        activeClimbable = findClimbable(climbables);
+        if (activeClimbable != nullptr)
+        {
+            climbing = true;
+            grounded = false;
+            groundedOnOneWay = false;
+            coyoteTimer = 0.f;
+            jumpBufferTimer = 0.f;
+            jumpsUsed = 0;
+        }
+    }
+
+    if (!climbing || activeClimbable == nullptr)
+    {
+        return false;
+    }
+
+    if (jumpIsPressed && !jumpWasPressed)
+    {
+        climbing = false;
+        activeClimbable = nullptr;
+        velocity.x = facingDirection == FacingDirection::Right
+            ? ClimbJumpHorizontalSpeed
+            : -ClimbJumpHorizontalSpeed;
+        velocity.y = -ClimbJumpSpeed;
+        jumpsUsed = 1;
+        jumpWasPressed = true;
+        return false;
+    }
+
+    if (leftIsPressed != rightIsPressed)
+    {
+        facingDirection = leftIsPressed ? FacingDirection::Left : FacingDirection::Right;
+        climbing = false;
+        activeClimbable = nullptr;
+        velocity.x = leftIsPressed ? -ClimbJumpHorizontalSpeed : ClimbJumpHorizontalSpeed;
+        velocity.y = 0.f;
+        return false;
+    }
+
+    const float top = activeClimbable->getPosition().y;
+    const float bottom = top + activeClimbable->getSize().y;
+    const float playerBottom = body.getPosition().y + body.getSize().y;
+    if ((verticalDirection < 0.f && playerBottom <= top + 1.f)
+        || (verticalDirection > 0.f && playerBottom >= bottom - 1.f))
+    {
+        climbing = false;
+        activeClimbable = nullptr;
+        velocity = {};
+        return false;
+    }
+
+    const float climbCenterX = activeClimbable->getPosition().x
+        + activeClimbable->getSize().x / 2.f;
+    body.setPosition({ climbCenterX - body.getSize().x / 2.f, body.getPosition().y });
+    velocity = { 0.f, verticalDirection * ClimbSpeed };
+    jumpWasPressed = jumpIsPressed;
+    return true;
+}
+
+const Climbable* Player::findClimbable(const std::span<const Climbable> climbables) const
+{
+    const sf::FloatRect playerBounds = getBounds();
+    const float playerCenterX = playerBounds.position.x + playerBounds.size.x / 2.f;
+    const float playerBottom = playerBounds.position.y + playerBounds.size.y;
+
+    for (const Climbable& climbable : climbables)
+    {
+        const sf::Vector2f position = climbable.getPosition();
+        const sf::Vector2f size = climbable.getSize();
+        const bool horizontallyAligned = playerCenterX >= position.x - 12.f
+            && playerCenterX <= position.x + size.x + 12.f;
+        const bool verticallyAligned = playerBottom >= position.y - 4.f
+            && playerBounds.position.y <= position.y + size.y + 4.f;
+        if (horizontallyAligned && verticallyAligned)
+        {
+            return &climbable;
+        }
+    }
+
+    return nullptr;
 }
 
 void Player::updateJump(const float deltaTime)
@@ -288,6 +433,7 @@ void Player::updateDamageTimers(const float deltaTime)
 {
     invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
     hurtTimer = std::max(0.f, hurtTimer - deltaTime);
+    dropThroughTimer = std::max(0.f, dropThroughTimer - deltaTime);
 }
 
 void Player::applyGravity(const float deltaTime)
@@ -302,6 +448,11 @@ void Player::resolveHorizontalCollisions(const std::span<const Platform> platfor
 {
     for (const Platform& platform : platforms)
     {
+        if (platform.getType() == PlatformType::OneWay)
+        {
+            continue;
+        }
+
         if (!overlaps(platform))
         {
             continue;
@@ -323,7 +474,9 @@ void Player::resolveHorizontalCollisions(const std::span<const Platform> platfor
     }
 }
 
-void Player::resolveVerticalCollisions(const std::span<const Platform> platforms)
+void Player::resolveVerticalCollisions(
+    const std::span<const Platform> platforms,
+    const float previousBottom)
 {
     for (const Platform& platform : platforms)
     {
@@ -335,10 +488,21 @@ void Player::resolveVerticalCollisions(const std::span<const Platform> platforms
         const sf::Vector2f platformPosition = platform.getPosition();
         const sf::Vector2f platformSize = platform.getSize();
 
+        if (platform.getType() == PlatformType::OneWay)
+        {
+            const bool landedFromAbove = velocity.y >= 0.f
+                && previousBottom <= platformPosition.y + 1.f;
+            if (dropThroughTimer > 0.f || !landedFromAbove)
+            {
+                continue;
+            }
+        }
+
         if (velocity.y > 0.f)
         {
             body.setPosition({ body.getPosition().x, platformPosition.y - body.getSize().y });
             grounded = true;
+            groundedOnOneWay = platform.getType() == PlatformType::OneWay;
             jumpsUsed = 0;
         }
         else if (velocity.y < 0.f)

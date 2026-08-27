@@ -6,6 +6,7 @@
 #include <optional>
 
 class Platform;
+class Climbable;
 
 class Player final : public sf::Drawable
 {
@@ -18,7 +19,11 @@ public:
 
     explicit Player(sf::Vector2f startPosition);
 
-    void update(float deltaTime, std::span<const Platform> platforms, sf::Vector2f worldSize);
+    void update(
+        float deltaTime,
+        std::span<const Platform> platforms,
+        std::span<const Climbable> climbables,
+        sf::Vector2f worldSize);
     void respawn();
     void setSpawnPosition(sf::Vector2f position);
     void setDebugDraw(bool enabled);
@@ -39,13 +44,15 @@ public:
 
 private:
     void handleInput(float deltaTime);
+    bool updateClimbing(std::span<const Climbable> climbables);
+    [[nodiscard]] const Climbable* findClimbable(std::span<const Climbable> climbables) const;
     void updateJump(float deltaTime);
     void startJump();
     void updateAttack(float deltaTime);
     void updateDamageTimers(float deltaTime);
     void applyGravity(float deltaTime);
     void resolveHorizontalCollisions(std::span<const Platform> platforms);
-    void resolveVerticalCollisions(std::span<const Platform> platforms);
+    void resolveVerticalCollisions(std::span<const Platform> platforms, float previousBottom);
     void constrainToWorld(float worldWidth);
     [[nodiscard]] bool overlaps(const Platform& platform) const;
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
@@ -54,6 +61,9 @@ private:
     sf::Vector2f spawnPosition;
     sf::Vector2f velocity{};
     bool grounded{ false };
+    bool groundedOnOneWay{ false };
+    bool climbing{ false };
+    const Climbable* activeClimbable{ nullptr };
     bool jumpWasPressed{ false };
     bool attackWasPressed{ false };
     unsigned int jumpsUsed{ 0 };
@@ -65,6 +75,7 @@ private:
     float attackCooldownTimer{ 0.f };
     float invulnerabilityTimer{ 0.f };
     float hurtTimer{ 0.f };
+    float dropThroughTimer{ 0.f };
     int health{ 5 };
     bool respawnRequested{ false };
     bool debugDraw{ false };
@@ -87,5 +98,10 @@ private:
     static constexpr float HurtDuration = 0.22f;
     static constexpr float HurtKnockbackSpeed = 420.f;
     static constexpr float HurtKnockbackLift = 420.f;
+    static constexpr float DropThroughDuration = 0.18f;
+    static constexpr float DropThroughSpeed = 120.f;
+    static constexpr float ClimbSpeed = 170.f;
+    static constexpr float ClimbJumpSpeed = 520.f;
+    static constexpr float ClimbJumpHorizontalSpeed = 180.f;
     static constexpr unsigned int MaxJumps = 2;
 };

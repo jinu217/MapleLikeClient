@@ -99,7 +99,11 @@ void Game::processEvents()
 
 void Game::update(const float deltaTime)
 {
-    player.update(deltaTime, world.getPlatforms(), world.getSize());
+    player.update(
+        deltaTime,
+        world.getPlatforms(),
+        world.getClimbables(),
+        world.getSize());
     world.update(player, inventory, deltaTime);
     if (player.consumeRespawnRequest())
     {
